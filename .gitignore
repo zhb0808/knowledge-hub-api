@@ -1,0 +1,9 @@
+target/
+.idea/
+*.iml
+*.log
+.DS_Store
+
+### Local configuration and secrets ###
+application-local.yml
+.env
