@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: knowledge-hub-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/knowledge_hub
+    username: postgres
+    password: 888888
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.hibernate.SQL: debug
