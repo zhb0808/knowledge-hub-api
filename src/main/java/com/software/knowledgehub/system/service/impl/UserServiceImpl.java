@@ -1,0 +1,109 @@
+package com.software.knowledgehub.system.service.impl;
+
+import com.software.knowledgehub.common.exception.BusinessException;
+import com.software.knowledgehub.system.dto.CreateUserDTO;
+import com.software.knowledgehub.system.dto.UpdateUserDTO;
+import com.software.knowledgehub.system.entity.SysUser;
+import com.software.knowledgehub.system.repository.SysUserRepository;
+import com.software.knowledgehub.system.service.UserService;
+import com.software.knowledgehub.system.vo.UserVO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Locale;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class UserServiceImpl implements UserService {
+
+    private final SysUserRepository sysUserRepository;
+
+    /**
+     * 创建用户。
+     */
+    @Override
+    @Transactional
+    public UserVO createUser(CreateUserDTO request) {
+        String username = request.getUsername().strip().toLowerCase(Locale.ROOT);
+
+        // 检查用户名是否已经使用。
+        if (sysUserRepository.existsByUsername(username)) {
+            throw new BusinessException("用户名已存在");
+        }
+
+        SysUser user = new SysUser();
+        user.setUsername(username);
+        user.setDisplayName(request.getDisplayName().strip());
+        user.setEmail(request.getEmail());
+        user.setStatus((short) 1);
+
+        // 保存新用户并取得数据库生成的主键。
+        SysUser savedUser = sysUserRepository.save(user);
+        return toUserVO(savedUser);
+    }
+
+    /**
+     * 查询用户详情。
+     */
+    @Override
+    public UserVO getUser(Long id) {
+        // 按主键加载用户。
+        SysUser user = sysUserRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        return toUserVO(user);
+    }
+
+    /**
+     * 分页查询用户。
+     */
+    @Override
+    public Page<UserVO> listUsers(Pageable pageable) {
+        // 按创建时间倒序加载用户分页数据。
+        return sysUserRepository.findAll(pageable).map(this::toUserVO);
+    }
+
+    /**
+     * 修改用户资料和状态。
+     */
+    @Override
+    @Transactional
+    public void updateUser(Long id, UpdateUserDTO request) {
+        // 加载需要修改的托管实体。
+        SysUser user = sysUserRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+
+        user.setDisplayName(request.getDisplayName().strip());
+        user.setEmail(request.getEmail());
+        user.setStatus(request.getStatus());
+    }
+
+    /**
+     * 删除用户。
+     */
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        // 加载用户，避免把不存在的删除当作成功。
+        SysUser user = sysUserRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+
+        sysUserRepository.delete(user);
+    }
+
+    private UserVO toUserVO(SysUser user) {
+        return new UserVO(
+                user.getId(),
+                user.getUsername(),
+                user.getDisplayName(),
+                user.getEmail(),
+                user.getStatus(),
+                user.getCreatedTime(),
+                user.getUpdatedTime()
+        );
+    }
+
+}
