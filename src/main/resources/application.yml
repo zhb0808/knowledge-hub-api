@@ -20,6 +20,14 @@ spring:
     web:
       pageable:
         max-page-size: 100
+    redis:
+      host: localhost
+      port: 6378
+      password: 123456
+
+jwt:
+  secret: knowledge-hub-local-jwt-signing-key-for-course-2026
+  expiration: 7200000
 
 server:
   port: 8080

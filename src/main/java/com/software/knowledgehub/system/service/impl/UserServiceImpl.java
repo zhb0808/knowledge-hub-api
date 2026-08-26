@@ -1,19 +1,25 @@
 package com.software.knowledgehub.system.service.impl;
 
 import com.software.knowledgehub.common.exception.BusinessException;
+import com.software.knowledgehub.system.dto.AssignRoleDTO;
 import com.software.knowledgehub.system.dto.CreateUserDTO;
 import com.software.knowledgehub.system.dto.UpdateUserDTO;
 import com.software.knowledgehub.system.entity.SysUser;
+import com.software.knowledgehub.system.entity.SysRole;
 import com.software.knowledgehub.system.repository.SysUserRepository;
+import com.software.knowledgehub.system.repository.SysRoleRepository;
 import com.software.knowledgehub.system.service.UserService;
 import com.software.knowledgehub.system.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.HashSet;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +27,8 @@ import java.util.Locale;
 public class UserServiceImpl implements UserService {
 
     private final SysUserRepository sysUserRepository;
+    private final SysRoleRepository sysRoleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 创建用户。
@@ -38,6 +46,7 @@ public class UserServiceImpl implements UserService {
         SysUser user = new SysUser();
         user.setUsername(username);
         user.setDisplayName(request.getDisplayName().strip());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
         user.setStatus((short) 1);
 
@@ -92,6 +101,22 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new BusinessException("用户不存在"));
 
         sysUserRepository.delete(user);
+    }
+
+    /**
+     * 为用户重新分配角色。
+     */
+    @Override
+    @Transactional
+    public void assignRoles(Long id, AssignRoleDTO request) {
+        SysUser user = sysUserRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+
+        List<SysRole> roles = sysRoleRepository.findAllById(request.getRoleIds());
+        if (roles.size() != request.getRoleIds().size()) {
+            throw new BusinessException("角色不存在");
+        }
+        user.setRoles(new HashSet<>(roles));
     }
 
     private UserVO toUserVO(SysUser user) {

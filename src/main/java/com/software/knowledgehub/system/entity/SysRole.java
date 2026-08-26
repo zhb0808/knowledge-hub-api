@@ -17,29 +17,23 @@ import java.util.Set;
 @Getter
 @Setter
 @Entity
-@Table(name = "sys_user")
-public class SysUser extends BaseEntity {
+@Table(name = "sys_role")
+public class SysRole extends BaseEntity {
 
     @Column(nullable = false, length = 50)
-    private String username;
-
-    @Column(name = "display_name", nullable = false, length = 100)
-    private String displayName;
+    private String code;
 
     @Column(nullable = false, length = 100)
-    private String password;
+    private String name;
 
     @Column(length = 255)
-    private String email;
-
-    @Column(nullable = false)
-    private Short status;
+    private String description;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "sys_user_role",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
+            name = "sys_role_permission",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    private Set<SysRole> roles = new HashSet<>();
+    private Set<SysPermission> permissions = new HashSet<>();
 }

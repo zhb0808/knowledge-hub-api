@@ -2,6 +2,7 @@ package com.software.knowledgehub.system.controller;
 
 import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.system.dto.CreateUserDTO;
+import com.software.knowledgehub.system.dto.AssignRoleDTO;
 import com.software.knowledgehub.system.dto.UpdateUserDTO;
 import com.software.knowledgehub.system.service.UserService;
 import com.software.knowledgehub.system.vo.UserVO;
@@ -58,6 +59,14 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
+        return ApiResponse.success(null);
+    }
+
+    @PutMapping("/{id}/roles")
+    public ApiResponse<Void> assignRoles(
+            @PathVariable Long id,
+            @Valid @RequestBody AssignRoleDTO request) {
+        userService.assignRoles(id, request);
         return ApiResponse.success(null);
     }
 }

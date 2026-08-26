@@ -1,5 +1,6 @@
 package com.software.knowledgehub.system.service;
 
+import com.software.knowledgehub.system.dto.AssignRoleDTO;
 import com.software.knowledgehub.system.dto.CreateUserDTO;
 import com.software.knowledgehub.system.dto.UpdateUserDTO;
 import com.software.knowledgehub.system.vo.UserVO;
@@ -32,4 +33,9 @@ public interface UserService {
      * 删除用户。
      */
     void deleteUser(Long id);
+
+    /**
+     * 为用户重新分配角色。
+     */
+    void assignRoles(Long id, AssignRoleDTO request);
 }
