@@ -1,5 +1,6 @@
 package com.software.knowledgehub.system.controller;
 
+import com.software.knowledgehub.audit.annotation.OperationLog;
 import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.system.dto.AssignPermissionDTO;
 import com.software.knowledgehub.system.dto.CreateRoleDTO;
@@ -26,6 +27,7 @@ public class RoleController {
 
     private final RoleService roleService;
 
+    @OperationLog(module = "角色管理", action = "创建角色")
     @PostMapping
     public ApiResponse<RoleVO> createRole(@Valid @RequestBody CreateRoleDTO request) {
         return ApiResponse.success(roleService.createRole(request));
@@ -41,6 +43,7 @@ public class RoleController {
         return ApiResponse.success(roleService.getRole(id));
     }
 
+    @OperationLog(module = "角色管理", action = "修改角色")
     @PutMapping("/{id}")
     public ApiResponse<Void> updateRole(
             @PathVariable Long id,
@@ -49,12 +52,14 @@ public class RoleController {
         return ApiResponse.success(null);
     }
 
+    @OperationLog(module = "角色管理", action = "删除角色")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteRole(@PathVariable Long id) {
         roleService.deleteRole(id);
         return ApiResponse.success(null);
     }
 
+    @OperationLog(module = "角色管理", action = "分配角色权限")
     @PutMapping("/{id}/permissions")
     public ApiResponse<Void> assignPermissions(
             @PathVariable Long id,

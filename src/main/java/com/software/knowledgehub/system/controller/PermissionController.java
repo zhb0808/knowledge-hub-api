@@ -1,5 +1,6 @@
 package com.software.knowledgehub.system.controller;
 
+import com.software.knowledgehub.audit.annotation.OperationLog;
 import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.system.dto.CreatePermissionDTO;
 import com.software.knowledgehub.system.dto.UpdatePermissionDTO;
@@ -25,6 +26,7 @@ public class PermissionController {
 
     private final PermissionService permissionService;
 
+    @OperationLog(module = "权限管理", action = "创建权限")
     @PostMapping
     public ApiResponse<PermissionVO> createPermission(
             @Valid @RequestBody CreatePermissionDTO request) {
@@ -41,6 +43,7 @@ public class PermissionController {
         return ApiResponse.success(permissionService.getPermission(id));
     }
 
+    @OperationLog(module = "权限管理", action = "修改权限")
     @PutMapping("/{id}")
     public ApiResponse<Void> updatePermission(
             @PathVariable Long id,
@@ -49,6 +52,7 @@ public class PermissionController {
         return ApiResponse.success(null);
     }
 
+    @OperationLog(module = "权限管理", action = "删除权限")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deletePermission(@PathVariable Long id) {
         permissionService.deletePermission(id);

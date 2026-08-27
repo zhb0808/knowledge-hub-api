@@ -37,7 +37,7 @@ public interface DocumentService {
     void updateDocument(Long id, UpdateDocumentDTO request);
 
     /**
-     * 删除文档及其标签关系。
+     * 删除文档、标签关系及关联文件。
      */
     void deleteDocument(Long id);
 }

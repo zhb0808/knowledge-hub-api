@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -19,14 +20,18 @@ public interface KbDocumentRepository extends JpaRepository<KbDocument, Long>, J
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update KbDocument document
-            set document.status = :status
+            set document.status = :status,
+                document.updatedBy = :updatedBy,
+                document.updatedTime = :updatedTime
             where document.knowledgeBase.id = :knowledgeBaseId
             and document.id in :ids
             """)
     int updateStatusByKnowledgeBaseIdAndIdIn(
             @Param("knowledgeBaseId") Long knowledgeBaseId,
             @Param("ids") Collection<Long> ids,
-            @Param("status") String status);
+            @Param("status") String status,
+            @Param("updatedBy") Long updatedBy,
+            @Param("updatedTime") OffsetDateTime updatedTime);
 
     boolean existsByKnowledgeBaseId(Long knowledgeBaseId);
 

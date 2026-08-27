@@ -1,5 +1,6 @@
 package com.software.knowledgehub.knowledge.service.impl;
 
+import com.software.knowledgehub.cache.service.RedisCacheService;
 import com.software.knowledgehub.common.exception.BusinessException;
 import com.software.knowledgehub.knowledge.dto.CreateKnowledgeBaseDTO;
 import com.software.knowledgehub.knowledge.dto.UpdateKnowledgeBaseDTO;
@@ -23,10 +24,13 @@ import java.util.Locale;
 @Transactional(readOnly = true)
 public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
 
+    private static final String KNOWLEDGE_BASE_CACHE_KEY_PREFIX = "cache:knowledge-base:";
+
     private final KbKnowledgeBaseRepository knowledgeBaseRepository;
     private final KbCategoryRepository categoryRepository;
     private final KbDocumentRepository documentRepository;
     private final KbTagRepository tagRepository;
+    private final RedisCacheService redisCacheService;
 
     /**
      * 创建知识库。
@@ -56,10 +60,23 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
      */
     @Override
     public KnowledgeBaseVO getKnowledgeBase(Long id) {
+        String cacheKey = KNOWLEDGE_BASE_CACHE_KEY_PREFIX + id;
+        KnowledgeBaseVO cachedKnowledgeBase = redisCacheService.getCacheValue(
+                cacheKey,
+                KnowledgeBaseVO.class
+        );
+        if (cachedKnowledgeBase != null) {
+            return cachedKnowledgeBase;
+        }
+
         // 在只读事务中加载知识库。
         KbKnowledgeBase knowledgeBase = knowledgeBaseRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("知识库不存在"));
-        return toKnowledgeBaseVO(knowledgeBase);
+        KnowledgeBaseVO knowledgeBaseVO = toKnowledgeBaseVO(knowledgeBase);
+
+        // 数据库命中后回填详情缓存。
+        redisCacheService.setCacheValue(cacheKey, knowledgeBaseVO);
+        return knowledgeBaseVO;
     }
 
     /**
@@ -84,6 +101,9 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         knowledgeBase.setName(request.getName().strip());
         knowledgeBase.setDescription(request.getDescription());
         knowledgeBase.setStatus(request.getStatus());
+
+        // 修改后删除旧缓存，下一次详情查询重新加载数据库数据。
+        redisCacheService.deleteCacheValue(KNOWLEDGE_BASE_CACHE_KEY_PREFIX + id);
     }
 
     /**
@@ -104,6 +124,9 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         }
 
         knowledgeBaseRepository.delete(knowledgeBase);
+
+        // 删除知识库后不再保留可能失效的详情缓存。
+        redisCacheService.deleteCacheValue(KNOWLEDGE_BASE_CACHE_KEY_PREFIX + id);
     }
 
     private KnowledgeBaseVO toKnowledgeBaseVO(KbKnowledgeBase knowledgeBase) {

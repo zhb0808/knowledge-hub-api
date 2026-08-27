@@ -1,5 +1,6 @@
 package com.software.knowledgehub.system.controller;
 
+import com.software.knowledgehub.audit.annotation.OperationLog;
 import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.system.dto.CreateUserDTO;
 import com.software.knowledgehub.system.dto.AssignRoleDTO;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.SortDefault;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -28,6 +29,7 @@ public class UserController {
 
     private final UserService userService;
 
+    @OperationLog(module = "用户管理", action = "创建用户")
     @PostMapping
     public ApiResponse<UserVO> createUser(@Valid @RequestBody CreateUserDTO request) {
         return ApiResponse.success(userService.createUser(request));
@@ -40,14 +42,14 @@ public class UserController {
 
     @GetMapping
     public ApiResponse<Page<UserVO>> listUsers(
-            @PageableDefault(
-                    size = 10,
+            @SortDefault(
                     sort = "createdTime",
                     direction = Sort.Direction.DESC
             ) Pageable pageable) {
         return ApiResponse.success(userService.listUsers(pageable));
     }
 
+    @OperationLog(module = "用户管理", action = "修改用户")
     @PutMapping("/{id}")
     public ApiResponse<Void> updateUser(
             @PathVariable Long id,
@@ -56,12 +58,14 @@ public class UserController {
         return ApiResponse.success(null);
     }
 
+    @OperationLog(module = "用户管理", action = "删除用户")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ApiResponse.success(null);
     }
 
+    @OperationLog(module = "用户管理", action = "分配用户角色")
     @PutMapping("/{id}/roles")
     public ApiResponse<Void> assignRoles(
             @PathVariable Long id,

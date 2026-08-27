@@ -1,5 +1,6 @@
 package com.software.knowledgehub.knowledge.service.impl;
 
+import com.software.knowledgehub.cache.service.RedisCacheService;
 import com.software.knowledgehub.common.exception.BusinessException;
 import com.software.knowledgehub.knowledge.dto.BatchUpdateDocumentStatusDTO;
 import com.software.knowledgehub.knowledge.dto.CreateDocumentDTO;
@@ -14,14 +15,17 @@ import com.software.knowledgehub.knowledge.repository.KbDocumentRepository;
 import com.software.knowledgehub.knowledge.repository.KbKnowledgeBaseRepository;
 import com.software.knowledgehub.knowledge.repository.KbTagRepository;
 import com.software.knowledgehub.knowledge.service.DocumentService;
+import com.software.knowledgehub.knowledge.service.DocumentFileService;
 import com.software.knowledgehub.knowledge.vo.DocumentListVO;
 import com.software.knowledgehub.knowledge.vo.DocumentVO;
 import com.software.knowledgehub.knowledge.vo.TagVO;
+import com.software.knowledgehub.security.model.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +33,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -41,10 +46,14 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class DocumentServiceImpl implements DocumentService {
 
+    private static final String DOCUMENT_CACHE_KEY_PREFIX = "cache:document:";
+
     private final KbDocumentRepository documentRepository;
     private final KbKnowledgeBaseRepository knowledgeBaseRepository;
     private final KbCategoryRepository categoryRepository;
     private final KbTagRepository tagRepository;
+    private final DocumentFileService documentFileService;
+    private final RedisCacheService redisCacheService;
 
     /**
      * 创建文档及其标签关系。
@@ -82,10 +91,20 @@ public class DocumentServiceImpl implements DocumentService {
      */
     @Override
     public DocumentVO getDocument(Long id) {
+        String cacheKey = DOCUMENT_CACHE_KEY_PREFIX + id;
+        DocumentVO cachedDocument = redisCacheService.getCacheValue(cacheKey, DocumentVO.class);
+        if (cachedDocument != null) {
+            return cachedDocument;
+        }
+
         // 在只读事务中加载文档并组装关联展示字段。
         KbDocument document = documentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("文档不存在"));
-        return toDocumentVO(document);
+        DocumentVO documentVO = toDocumentVO(document);
+
+        // 数据库命中后回填详情缓存。
+        redisCacheService.setCacheValue(cacheKey, documentVO);
+        return documentVO;
     }
 
     /**
@@ -156,12 +175,22 @@ public class DocumentServiceImpl implements DocumentService {
             throw new BusinessException("知识库不存在");
         }
 
-        // 直接执行 JPQL 批量更新。
-        return documentRepository.updateStatusByKnowledgeBaseIdAndIdIn(
+        // JPQL 批量更新绕过 JPA Auditing，需要显式写入修改人和修改时间。
+        AuthenticatedUser currentUser = (AuthenticatedUser) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        int updatedCount = documentRepository.updateStatusByKnowledgeBaseIdAndIdIn(
                 request.getKnowledgeBaseId(),
                 request.getDocumentIds(),
-                request.getStatus()
+                request.getStatus(),
+                currentUser.getId(),
+                OffsetDateTime.now()
         );
+
+        // 删除请求范围内的详情缓存，避免继续读取旧状态。
+        request.getDocumentIds().forEach(documentId ->
+                redisCacheService.deleteCacheValue(DOCUMENT_CACHE_KEY_PREFIX + documentId));
+        return updatedCount;
     }
 
     /**
@@ -188,10 +217,13 @@ public class DocumentServiceImpl implements DocumentService {
         // 修改托管集合，Hibernate 根据差异更新关系表。
         document.getTags().clear();
         document.getTags().addAll(tags);
+
+        // 修改后删除旧缓存，下一次详情查询重新加载关联数据。
+        redisCacheService.deleteCacheValue(DOCUMENT_CACHE_KEY_PREFIX + id);
     }
 
     /**
-     * 删除文档及其标签关系。
+     * 删除文档、标签关系及关联文件。
      */
     @Override
     @Transactional
@@ -200,9 +232,15 @@ public class DocumentServiceImpl implements DocumentService {
         KbDocument document = documentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("文档不存在"));
 
+        // 先删除对象存储中的文件和文件元数据。
+        documentFileService.deleteFile(id);
+
         // 先解除拥有方维护的标签关系，再删除文档。
         document.getTags().clear();
         documentRepository.delete(document);
+
+        // 删除文档后不再保留可能失效的详情缓存。
+        redisCacheService.deleteCacheValue(DOCUMENT_CACHE_KEY_PREFIX + id);
     }
 
     private KbCategory loadCategory(Long categoryId, Long knowledgeBaseId) {
