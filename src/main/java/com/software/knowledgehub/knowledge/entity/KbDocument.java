@@ -9,6 +9,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -40,6 +41,10 @@ public class KbDocument extends BaseEntity {
 
     @Column(nullable = false, length = 20)
     private String status;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @ManyToMany
     @JoinTable(

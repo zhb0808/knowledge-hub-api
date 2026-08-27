@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -203,6 +204,9 @@ public class DocumentServiceImpl implements DocumentService {
         KbDocument document = documentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("文档不存在"));
         Long knowledgeBaseId = document.getKnowledgeBase().getId();
+        if (!document.getVersion().equals(request.getVersion())) {
+            throw new BusinessException("文档已被其他用户修改，请刷新后重试");
+        }
 
         // 加载并校验新的分类、标签关系。
         KbCategory category = loadCategory(request.getCategoryId(), knowledgeBaseId);
@@ -217,6 +221,13 @@ public class DocumentServiceImpl implements DocumentService {
         // 修改托管集合，Hibernate 根据差异更新关系表。
         document.getTags().clear();
         document.getTags().addAll(tags);
+
+        try {
+            // 立即执行更新，捕获同一时刻提交的版本冲突。
+            documentRepository.flush();
+        } catch (OptimisticLockingFailureException exception) {
+            throw new BusinessException("文档已被其他用户修改，请刷新后重试");
+        }
 
         // 修改后删除旧缓存，下一次详情查询重新加载关联数据。
         redisCacheService.deleteCacheValue(DOCUMENT_CACHE_KEY_PREFIX + id);
@@ -328,6 +339,7 @@ public class DocumentServiceImpl implements DocumentService {
                 document.getSummary(),
                 document.getContent(),
                 document.getStatus(),
+                document.getVersion(),
                 tags,
                 document.getCreatedTime(),
                 document.getUpdatedTime()

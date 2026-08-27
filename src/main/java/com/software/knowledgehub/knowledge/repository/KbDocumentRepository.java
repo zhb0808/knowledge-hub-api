@@ -22,7 +22,8 @@ public interface KbDocumentRepository extends JpaRepository<KbDocument, Long>, J
             update KbDocument document
             set document.status = :status,
                 document.updatedBy = :updatedBy,
-                document.updatedTime = :updatedTime
+                document.updatedTime = :updatedTime,
+                document.version = document.version + 1
             where document.knowledgeBase.id = :knowledgeBaseId
             and document.id in :ids
             """)

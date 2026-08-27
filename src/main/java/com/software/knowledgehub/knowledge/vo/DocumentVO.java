@@ -20,6 +20,7 @@ public class DocumentVO {
     private String summary;
     private String content;
     private String status;
+    private Long version;
     private List<TagVO> tags;
     private OffsetDateTime createdTime;
     private OffsetDateTime updatedTime;

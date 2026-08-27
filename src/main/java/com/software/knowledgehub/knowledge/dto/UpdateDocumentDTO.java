@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -12,6 +13,10 @@ import java.util.Set;
 
 @Data
 public class UpdateDocumentDTO {
+
+    @NotNull(message = "文档版本号不能为空")
+    @PositiveOrZero(message = "文档版本号不能小于0")
+    private Long version;
 
     @Positive(message = "分类ID必须大于0")
     private Long categoryId;
