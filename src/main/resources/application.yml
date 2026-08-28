@@ -1,3 +1,6 @@
+server:
+  port: 8080
+
 spring:
   application:
     name: knowledge-hub-api
@@ -26,6 +29,9 @@ spring:
       port: 6378
       password: 123456
 
+  elasticsearch:
+    uris: http://localhost:9200
+
 jwt:
   secret: knowledge-hub-local-jwt-signing-key-for-course-2026
   expiration: 7200000
@@ -38,9 +44,6 @@ minio:
 
 cache:
   detail-ttl: 30m
-
-server:
-  port: 8080
 
 logging:
   pattern:

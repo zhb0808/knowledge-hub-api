@@ -17,6 +17,9 @@ public interface KbDocumentRepository extends JpaRepository<KbDocument, Long>, J
     @EntityGraph(attributePaths = {"category", "tags"})
     List<KbDocument> findByIdIn(Collection<Long> ids);
 
+    @EntityGraph(attributePaths = {"knowledgeBase", "category", "tags"})
+    List<KbDocument> findByStatus(String status);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update KbDocument document
