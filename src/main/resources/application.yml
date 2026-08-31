@@ -32,6 +32,16 @@ spring:
   elasticsearch:
     uris: http://localhost:9200
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: 123456
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+
 jwt:
   secret: knowledge-hub-local-jwt-signing-key-for-course-2026
   expiration: 7200000
@@ -44,6 +54,9 @@ minio:
 
 cache:
   detail-ttl: 30m
+
+document-index:
+  consumer-enabled: true
 
 logging:
   pattern:

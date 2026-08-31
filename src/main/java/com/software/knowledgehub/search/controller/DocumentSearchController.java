@@ -4,6 +4,7 @@ import com.software.knowledgehub.audit.annotation.OperationLog;
 import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.search.dto.SearchDocumentQueryDTO;
 import com.software.knowledgehub.search.service.DocumentSearchService;
+import com.software.knowledgehub.search.vo.DocumentIndexRebuildTaskVO;
 import com.software.knowledgehub.search.vo.SearchDocumentVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +29,9 @@ public class DocumentSearchController {
         return ApiResponse.success(documentSearchService.searchDocuments(request, pageable));
     }
 
-    @OperationLog(module = "企业搜索", action = "重建文档搜索索引")
+    @OperationLog(module = "企业搜索", action = "提交文档索引重建任务")
     @PostMapping("/rebuild")
-    public ApiResponse<Integer> rebuildDocumentIndex() {
-        return ApiResponse.success(documentSearchService.rebuildDocumentIndex());
+    public ApiResponse<DocumentIndexRebuildTaskVO> rebuildDocumentIndex() {
+        return ApiResponse.success(documentSearchService.submitDocumentIndexRebuild());
     }
 }

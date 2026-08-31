@@ -168,6 +168,27 @@ public class DocumentFileServiceImpl implements DocumentFileService {
      */
     @Override
     public DocumentFileAccessVO getFileUrl(Long documentId) {
+        // 确认文档存在，管理员可以访问任意状态的文档文件。
+        documentRepository.findById(documentId)
+                .orElseThrow(() -> new BusinessException("文档不存在"));
+        return createFileAccess(documentId);
+    }
+
+    /**
+     * 获取已发布文档文件的临时下载链接。
+     */
+    @Override
+    public DocumentFileAccessVO getPublishedFileUrl(Long documentId) {
+        // 加载文档并限制知识使用者只能下载已发布附件。
+        KbDocument document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new BusinessException("文档不存在"));
+        if (!"PUBLISHED".equals(document.getStatus())) {
+            throw new BusinessException("文档尚未发布");
+        }
+        return createFileAccess(documentId);
+    }
+
+    private DocumentFileAccessVO createFileAccess(Long documentId) {
         // 根据文档加载文件元数据。
         KbFile documentFile = fileRepository.findByDocumentId(documentId)
                 .orElseThrow(() -> new BusinessException("文档尚未上传文件"));

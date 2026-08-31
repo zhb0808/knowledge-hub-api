@@ -22,6 +22,11 @@ public interface DocumentService {
     DocumentVO getDocument(Long id);
 
     /**
+     * 查询已发布文档详情。
+     */
+    DocumentVO getPublishedDocument(Long id);
+
+    /**
      * 分页查询知识库中的文档。
      */
     Page<DocumentListVO> listDocuments(DocumentQueryDTO request, Pageable pageable);

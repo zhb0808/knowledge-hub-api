@@ -18,5 +18,6 @@ public class SearchDocumentVO {
     private String categoryName;
     private String title;
     private String summary;
+    private String contentHighlight;
     private OffsetDateTime updatedTime;
 }

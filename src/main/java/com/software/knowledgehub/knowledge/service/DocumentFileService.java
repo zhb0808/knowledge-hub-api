@@ -25,4 +25,9 @@ public interface DocumentFileService {
      * 获取文件的临时下载链接。
      */
     DocumentFileAccessVO getFileUrl(Long documentId);
+
+    /**
+     * 获取已发布文档文件的临时下载链接。
+     */
+    DocumentFileAccessVO getPublishedFileUrl(Long documentId);
 }

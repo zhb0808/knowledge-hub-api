@@ -109,6 +109,19 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     /**
+     * 查询已发布文档详情。
+     */
+    @Override
+    public DocumentVO getPublishedDocument(Long id) {
+        // 复用文档详情缓存，并限制知识使用者只能读取已发布内容。
+        DocumentVO document = getDocument(id);
+        if (!"PUBLISHED".equals(document.getStatus())) {
+            throw new BusinessException("文档尚未发布");
+        }
+        return document;
+    }
+
+    /**
      * 分页查询知识库中的文档。
      */
     @Override
