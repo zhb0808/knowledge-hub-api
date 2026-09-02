@@ -9,6 +9,7 @@ import com.software.knowledgehub.security.model.AuthenticatedUser;
 import com.software.knowledgehub.security.service.TokenService;
 import com.software.knowledgehub.system.entity.SysUser;
 import com.software.knowledgehub.system.repository.SysUserRepository;
+import com.software.knowledgehub.system.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final JwtProperties jwtProperties;
+    private final PermissionService permissionService;
 
     /**
      * 校验账号密码并创建登录状态。
@@ -54,7 +56,12 @@ public class AuthServiceImpl implements AuthService {
         return new CurrentUserVO(
                 currentUser.getId(),
                 currentUser.getUsername(),
-                currentUser.getDisplayName()
+                currentUser.getDisplayName(),
+                permissionService.listByUserId(currentUser.getId()).stream()
+                        .map(permission -> permission.getCode())
+                        .distinct()
+                        .sorted()
+                        .toList()
         );
     }
 

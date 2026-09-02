@@ -17,6 +17,11 @@ public interface DocumentFileService {
     DocumentFileVO replaceFile(Long documentId, MultipartFile file);
 
     /**
+     * 查询文档当前关联的文件元数据。
+     */
+    DocumentFileVO getFile(Long documentId);
+
+    /**
      * 删除文档关联的文件。
      */
     void deleteFile(Long documentId);

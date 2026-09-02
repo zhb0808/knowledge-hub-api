@@ -50,6 +50,11 @@ public class DocumentController {
         return ApiResponse.success(documentService.getDocument(id));
     }
 
+    @GetMapping("/{id}/file")
+    public ApiResponse<DocumentFileVO> getFile(@PathVariable Long id) {
+        return ApiResponse.success(documentFileService.getFile(id));
+    }
+
     @GetMapping
     public ApiResponse<Page<DocumentListVO>> listDocuments(
             @Valid DocumentQueryDTO request,

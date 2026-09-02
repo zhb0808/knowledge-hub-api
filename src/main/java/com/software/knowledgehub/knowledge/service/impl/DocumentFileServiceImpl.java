@@ -139,6 +139,19 @@ public class DocumentFileServiceImpl implements DocumentFileService {
     }
 
     /**
+     * 查询文档当前关联的文件元数据。
+     */
+    @Override
+    public DocumentFileVO getFile(Long documentId) {
+        // 确认目标文档存在，再按文档 ID 查询可选的文件元数据。
+        documentRepository.findById(documentId)
+                .orElseThrow(() -> new BusinessException("文档不存在"));
+        return fileRepository.findByDocumentId(documentId)
+                .map(this::toDocumentFileVO)
+                .orElse(null);
+    }
+
+    /**
      * 删除文档关联的文件。
      */
     @Override

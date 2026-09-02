@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Locale;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -126,6 +127,9 @@ public class UserServiceImpl implements UserService {
                 user.getDisplayName(),
                 user.getEmail(),
                 user.getStatus(),
+                user.getRoles().stream()
+                        .map(SysRole::getId)
+                        .collect(Collectors.toSet()),
                 user.getCreatedTime(),
                 user.getUpdatedTime()
         );

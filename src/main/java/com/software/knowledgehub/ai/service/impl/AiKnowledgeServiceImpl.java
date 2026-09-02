@@ -1,6 +1,7 @@
 package com.software.knowledgehub.ai.service.impl;
 
 import com.software.knowledgehub.ai.dto.AiChatDTO;
+import com.software.knowledgehub.ai.model.AiKnowledgeContext;
 import com.software.knowledgehub.ai.service.AiKnowledgeService;
 import com.software.knowledgehub.ai.vo.AiKnowledgeChatVO;
 import com.software.knowledgehub.ai.vo.AiKnowledgeRebuildVO;
@@ -16,6 +17,7 @@ import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @Service
@@ -51,55 +54,60 @@ public class AiKnowledgeServiceImpl implements AiKnowledgeService {
     @Override
     public AiKnowledgeChatVO knowledgeChat(AiChatDTO request) {
         try {
-            // 将用户问题转换为向量，并从企业知识片段中查找最相关的三条资料。
-            List<Document> relevantDocuments = vectorStore.similaritySearch(SearchRequest.builder()
-                    .query(request.getMessage())
-                    .topK(RETRIEVAL_TOP_K)
-                    .build());
-            if (relevantDocuments == null || relevantDocuments.isEmpty()) {
+            AiKnowledgeContext knowledgeContext = retrieveKnowledge(request.getMessage());
+            if (knowledgeContext.getSources().isEmpty()) {
                 return new AiKnowledgeChatVO(
                         "当前企业知识库中没有找到相关规定。",
                         List.of()
                 );
             }
 
-            StringBuilder context = new StringBuilder();
-            List<AiKnowledgeSourceVO> sources = new ArrayList<>();
-            for (int index = 0; index < relevantDocuments.size(); index++) {
-                Document document = relevantDocuments.get(index);
-                context.append("参考资料")
-                        .append(index + 1)
-                        .append("：\n")
-                        .append(document.getText())
-                        .append("\n\n");
-
-                Map<String, Object> metadata = document.getMetadata();
-                sources.add(new AiKnowledgeSourceVO(
-                        Long.valueOf(metadata.get("documentId").toString()),
-                        metadata.get("title").toString(),
-                        document.getText()
-                ));
-            }
-
-            String userPrompt = """
-                    以下是系统检索到的企业参考资料：
-
-                    %s
-                    用户问题：
-                    %s
-                    """.formatted(context, request.getMessage());
-
             // 把检索结果和用户问题一起提交给大模型生成回答。
             String answer = chatClient.prompt()
                     .system(SYSTEM_PROMPT)
-                    .user(userPrompt)
+                    .user(knowledgeContext.getUserPrompt())
                     .call()
                     .content();
-            return new AiKnowledgeChatVO(answer, sources);
+            return new AiKnowledgeChatVO(answer, knowledgeContext.getSources());
         } catch (Exception exception) {
             log.error("生成企业知识回答失败", exception);
             throw new BusinessException("企业知识回答生成失败，请稍后重试");
         }
+    }
+
+    /**
+     * 根据企业知识流式生成回答。
+     */
+    @Override
+    public Flux<ServerSentEvent<Object>> streamKnowledgeChat(AiChatDTO request) {
+        return Flux.defer(() -> {
+                    AiKnowledgeContext knowledgeContext = retrieveKnowledge(request.getMessage());
+                    ServerSentEvent<Object> sourcesEvent = ServerSentEvent.builder()
+                            .event("sources")
+                            .data(knowledgeContext.getSources())
+                            .build();
+
+                    if (knowledgeContext.getSources().isEmpty()) {
+                        ServerSentEvent<Object> contentEvent = ServerSentEvent.builder()
+                                .event("content")
+                                .data("当前企业知识库中没有找到相关规定。")
+                                .build();
+                        return Flux.just(sourcesEvent, contentEvent);
+                    }
+
+                    // 先返回参考来源，再把模型生成的回答片段持续发送给客户端。
+                    Flux<ServerSentEvent<Object>> contentEvents = chatClient.prompt()
+                            .system(SYSTEM_PROMPT)
+                            .user(knowledgeContext.getUserPrompt())
+                            .stream()
+                            .content()
+                            .map(content -> ServerSentEvent.builder()
+                                    .event("content")
+                                    .data((Object) content)
+                                    .build());
+                    return Flux.concat(Flux.just(sourcesEvent), contentEvents);
+                })
+                .doOnError(exception -> log.error("生成企业知识流式回答失败", exception));
     }
 
     /**
@@ -163,5 +171,43 @@ public class AiKnowledgeServiceImpl implements AiKnowledgeService {
             log.error("重建企业知识向量失败", exception);
             throw new BusinessException("重建企业知识失败，请检查 Embedding 模型和 pgvector 服务是否正常");
         }
+    }
+
+    private AiKnowledgeContext retrieveKnowledge(String message) {
+        // 将用户问题转换为向量，并从企业知识片段中查找最相关的三条资料。
+        List<Document> relevantDocuments = vectorStore.similaritySearch(SearchRequest.builder()
+                .query(message)
+                .topK(RETRIEVAL_TOP_K)
+                .build());
+        if (relevantDocuments == null || relevantDocuments.isEmpty()) {
+            return new AiKnowledgeContext("", List.of());
+        }
+
+        StringBuilder context = new StringBuilder();
+        List<AiKnowledgeSourceVO> sources = new ArrayList<>();
+        for (int index = 0; index < relevantDocuments.size(); index++) {
+            Document document = relevantDocuments.get(index);
+            context.append("参考资料")
+                    .append(index + 1)
+                    .append("：\n")
+                    .append(document.getText())
+                    .append("\n\n");
+
+            Map<String, Object> metadata = document.getMetadata();
+            sources.add(new AiKnowledgeSourceVO(
+                    Long.valueOf(metadata.get("documentId").toString()),
+                    metadata.get("title").toString(),
+                    document.getText()
+            ));
+        }
+
+        String userPrompt = """
+                以下是系统检索到的企业参考资料：
+
+                %s
+                用户问题：
+                %s
+                """.formatted(context, message);
+        return new AiKnowledgeContext(userPrompt, sources);
     }
 }
