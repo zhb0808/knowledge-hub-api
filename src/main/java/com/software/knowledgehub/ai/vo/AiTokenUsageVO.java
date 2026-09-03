@@ -7,9 +7,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AiChatVO {
+public class AiTokenUsageVO {
 
-    private String content;
+    private Integer inputTokens;
 
-    private AiTokenUsageVO usage;
+    private Integer outputTokens;
+
+    private Integer totalTokens;
 }

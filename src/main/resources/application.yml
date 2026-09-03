@@ -53,6 +53,7 @@ spring:
         options:
           model: qwen3.7-flash
           max-tokens: 2048
+          stream-usage: true
           extra-body:
             enable_thinking: false
       embedding:
@@ -85,6 +86,10 @@ cache:
 
 document-index:
   consumer-enabled: true
+
+chat-memory:
+  max-messages: 20
+  ttl: 2h
 
 logging:
   pattern:
