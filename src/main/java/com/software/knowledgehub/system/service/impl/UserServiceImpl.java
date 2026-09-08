@@ -4,22 +4,26 @@ import com.software.knowledgehub.common.exception.BusinessException;
 import com.software.knowledgehub.system.dto.AssignRoleDTO;
 import com.software.knowledgehub.system.dto.CreateUserDTO;
 import com.software.knowledgehub.system.dto.UpdateUserDTO;
-import com.software.knowledgehub.system.entity.SysUser;
+import com.software.knowledgehub.system.dto.UserQueryDTO;
 import com.software.knowledgehub.system.entity.SysRole;
-import com.software.knowledgehub.system.repository.SysUserRepository;
+import com.software.knowledgehub.system.entity.SysUser;
 import com.software.knowledgehub.system.repository.SysRoleRepository;
+import com.software.knowledgehub.system.repository.SysUserRepository;
 import com.software.knowledgehub.system.service.UserService;
 import com.software.knowledgehub.system.vo.UserVO;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,9 +75,29 @@ public class UserServiceImpl implements UserService {
      * 分页查询用户。
      */
     @Override
-    public Page<UserVO> listUsers(Pageable pageable) {
-        // 按创建时间倒序加载用户分页数据。
-        return sysUserRepository.findAll(pageable).map(this::toUserVO);
+    public Page<UserVO> listUsers(UserQueryDTO request, Pageable pageable) {
+        Specification<SysUser> specification = (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (request.getStatus() != null) {
+                predicates.add(builder.equal(root.get("status"), request.getStatus()));
+            }
+            if (request.getUsername() != null && !request.getUsername().isBlank()) {
+                String username = "%" + request.getUsername().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("username")), username));
+            }
+            if (request.getDisplayName() != null && !request.getDisplayName().isBlank()) {
+                String displayName = "%" + request.getDisplayName().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("displayName")), displayName));
+            }
+            if (request.getEmail() != null && !request.getEmail().isBlank()) {
+                String email = "%" + request.getEmail().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("email")), email));
+            }
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+
+        // 根据用户名、显示名称、邮箱和状态分页加载用户。
+        return sysUserRepository.findAll(specification, pageable).map(this::toUserVO);
     }
 
     /**

@@ -1,9 +1,12 @@
 package com.software.knowledgehub.system.service;
 
 import com.software.knowledgehub.system.dto.CreatePermissionDTO;
+import com.software.knowledgehub.system.dto.PermissionQueryDTO;
 import com.software.knowledgehub.system.dto.UpdatePermissionDTO;
 import com.software.knowledgehub.system.entity.SysPermission;
 import com.software.knowledgehub.system.vo.PermissionVO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -20,9 +23,9 @@ public interface PermissionService {
     PermissionVO getPermission(Long id);
 
     /**
-     * 查询权限列表。
+     * 分页查询权限。
      */
-    List<PermissionVO> listPermissions();
+    Page<PermissionVO> listPermissions(PermissionQueryDTO request, Pageable pageable);
 
     /**
      * 修改权限。

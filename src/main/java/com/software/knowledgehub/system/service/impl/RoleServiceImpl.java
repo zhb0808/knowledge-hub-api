@@ -3,6 +3,7 @@ package com.software.knowledgehub.system.service.impl;
 import com.software.knowledgehub.common.exception.BusinessException;
 import com.software.knowledgehub.system.dto.AssignPermissionDTO;
 import com.software.knowledgehub.system.dto.CreateRoleDTO;
+import com.software.knowledgehub.system.dto.RoleQueryDTO;
 import com.software.knowledgehub.system.dto.UpdateRoleDTO;
 import com.software.knowledgehub.system.entity.SysPermission;
 import com.software.knowledgehub.system.entity.SysRole;
@@ -10,12 +11,18 @@ import com.software.knowledgehub.system.repository.SysPermissionRepository;
 import com.software.knowledgehub.system.repository.SysRoleRepository;
 import com.software.knowledgehub.system.service.RoleService;
 import com.software.knowledgehub.system.vo.RoleVO;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -52,11 +59,25 @@ public class RoleServiceImpl implements RoleService {
     }
 
     /**
-     * 查询角色列表。
+     * 分页查询角色。
      */
     @Override
-    public List<RoleVO> listRoles() {
-        return sysRoleRepository.findAll().stream().map(this::toRoleVO).toList();
+    public Page<RoleVO> listRoles(RoleQueryDTO request, Pageable pageable) {
+        Specification<SysRole> specification = (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (request.getCode() != null && !request.getCode().isBlank()) {
+                String code = "%" + request.getCode().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("code")), code));
+            }
+            if (request.getName() != null && !request.getName().isBlank()) {
+                String name = "%" + request.getName().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("name")), name));
+            }
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+
+        // 根据角色编码和名称分页加载角色。
+        return sysRoleRepository.findAll(specification, pageable).map(this::toRoleVO);
     }
 
     /**

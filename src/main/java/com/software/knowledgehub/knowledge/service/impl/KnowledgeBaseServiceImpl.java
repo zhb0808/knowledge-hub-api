@@ -3,6 +3,7 @@ package com.software.knowledgehub.knowledge.service.impl;
 import com.software.knowledgehub.cache.service.RedisCacheService;
 import com.software.knowledgehub.common.exception.BusinessException;
 import com.software.knowledgehub.knowledge.dto.CreateKnowledgeBaseDTO;
+import com.software.knowledgehub.knowledge.dto.KnowledgeBaseQueryDTO;
 import com.software.knowledgehub.knowledge.dto.UpdateKnowledgeBaseDTO;
 import com.software.knowledgehub.knowledge.entity.KbKnowledgeBase;
 import com.software.knowledgehub.knowledge.repository.KbCategoryRepository;
@@ -11,12 +12,16 @@ import com.software.knowledgehub.knowledge.repository.KbKnowledgeBaseRepository;
 import com.software.knowledgehub.knowledge.repository.KbTagRepository;
 import com.software.knowledgehub.knowledge.service.KnowledgeBaseService;
 import com.software.knowledgehub.knowledge.vo.KnowledgeBaseVO;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -83,9 +88,27 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
      * 分页查询知识库。
      */
     @Override
-    public Page<KnowledgeBaseVO> listKnowledgeBases(Pageable pageable) {
-        // 按创建时间倒序加载知识库分页数据。
-        return knowledgeBaseRepository.findAll(pageable).map(this::toKnowledgeBaseVO);
+    public Page<KnowledgeBaseVO> listKnowledgeBases(
+            KnowledgeBaseQueryDTO request,
+            Pageable pageable) {
+        Specification<KbKnowledgeBase> specification = (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (request.getStatus() != null) {
+                predicates.add(builder.equal(root.get("status"), request.getStatus()));
+            }
+            if (request.getCode() != null && !request.getCode().isBlank()) {
+                String code = "%" + request.getCode().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("code")), code));
+            }
+            if (request.getName() != null && !request.getName().isBlank()) {
+                String name = "%" + request.getName().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("name")), name));
+            }
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+
+        // 根据知识库编码、名称和状态分页加载知识库。
+        return knowledgeBaseRepository.findAll(specification, pageable).map(this::toKnowledgeBaseVO);
     }
 
     /**

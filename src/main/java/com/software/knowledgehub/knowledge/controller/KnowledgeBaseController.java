@@ -3,6 +3,7 @@ package com.software.knowledgehub.knowledge.controller;
 import com.software.knowledgehub.audit.annotation.OperationLog;
 import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.knowledge.dto.CreateKnowledgeBaseDTO;
+import com.software.knowledgehub.knowledge.dto.KnowledgeBaseQueryDTO;
 import com.software.knowledgehub.knowledge.dto.UpdateKnowledgeBaseDTO;
 import com.software.knowledgehub.knowledge.service.KnowledgeBaseService;
 import com.software.knowledgehub.knowledge.vo.KnowledgeBaseVO;
@@ -42,11 +43,12 @@ public class KnowledgeBaseController {
 
     @GetMapping
     public ApiResponse<Page<KnowledgeBaseVO>> listKnowledgeBases(
+            @Valid KnowledgeBaseQueryDTO request,
             @SortDefault(
                     sort = "createdTime",
                     direction = Sort.Direction.DESC
             ) Pageable pageable) {
-        return ApiResponse.success(knowledgeBaseService.listKnowledgeBases(pageable));
+        return ApiResponse.success(knowledgeBaseService.listKnowledgeBases(request, pageable));
     }
 
     @OperationLog(module = "知识库管理", action = "修改知识库")

@@ -2,10 +2,11 @@ package com.software.knowledgehub.system.service;
 
 import com.software.knowledgehub.system.dto.AssignPermissionDTO;
 import com.software.knowledgehub.system.dto.CreateRoleDTO;
+import com.software.knowledgehub.system.dto.RoleQueryDTO;
 import com.software.knowledgehub.system.dto.UpdateRoleDTO;
 import com.software.knowledgehub.system.vo.RoleVO;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface RoleService {
 
@@ -20,9 +21,9 @@ public interface RoleService {
     RoleVO getRole(Long id);
 
     /**
-     * 查询角色列表。
+     * 分页查询角色。
      */
-    List<RoleVO> listRoles();
+    Page<RoleVO> listRoles(RoleQueryDTO request, Pageable pageable);
 
     /**
      * 修改角色资料。

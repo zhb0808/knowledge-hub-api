@@ -1,6 +1,7 @@
 package com.software.knowledgehub.knowledge.service;
 
 import com.software.knowledgehub.knowledge.dto.CreateKnowledgeBaseDTO;
+import com.software.knowledgehub.knowledge.dto.KnowledgeBaseQueryDTO;
 import com.software.knowledgehub.knowledge.dto.UpdateKnowledgeBaseDTO;
 import com.software.knowledgehub.knowledge.vo.KnowledgeBaseVO;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +22,7 @@ public interface KnowledgeBaseService {
     /**
      * 分页查询知识库。
      */
-    Page<KnowledgeBaseVO> listKnowledgeBases(Pageable pageable);
+    Page<KnowledgeBaseVO> listKnowledgeBases(KnowledgeBaseQueryDTO request, Pageable pageable);
 
     /**
      * 修改知识库资料和状态。

@@ -4,6 +4,7 @@ import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.system.dto.OperationLogQueryDTO;
 import com.software.knowledgehub.system.service.OperationLogService;
 import com.software.knowledgehub.system.vo.OperationLogVO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +23,7 @@ public class OperationLogController {
 
     @GetMapping
     public ApiResponse<Page<OperationLogVO>> listOperationLogs(
-            OperationLogQueryDTO request,
+            @Valid OperationLogQueryDTO request,
             @SortDefault(
                     sort = "createdTime",
                     direction = Sort.Direction.DESC

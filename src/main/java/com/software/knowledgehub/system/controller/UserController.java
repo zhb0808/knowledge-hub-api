@@ -5,6 +5,7 @@ import com.software.knowledgehub.common.response.ApiResponse;
 import com.software.knowledgehub.system.dto.CreateUserDTO;
 import com.software.knowledgehub.system.dto.AssignRoleDTO;
 import com.software.knowledgehub.system.dto.UpdateUserDTO;
+import com.software.knowledgehub.system.dto.UserQueryDTO;
 import com.software.knowledgehub.system.service.UserService;
 import com.software.knowledgehub.system.vo.UserVO;
 import jakarta.validation.Valid;
@@ -42,11 +43,12 @@ public class UserController {
 
     @GetMapping
     public ApiResponse<Page<UserVO>> listUsers(
+            @Valid UserQueryDTO request,
             @SortDefault(
                     sort = "createdTime",
                     direction = Sort.Direction.DESC
             ) Pageable pageable) {
-        return ApiResponse.success(userService.listUsers(pageable));
+        return ApiResponse.success(userService.listUsers(request, pageable));
     }
 
     @OperationLog(module = "用户管理", action = "修改用户")

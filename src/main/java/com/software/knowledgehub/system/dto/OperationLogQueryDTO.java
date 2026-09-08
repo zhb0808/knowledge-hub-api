@@ -1,5 +1,6 @@
 package com.software.knowledgehub.system.dto;
 
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,7 +11,8 @@ import java.time.LocalDate;
 @Setter
 public class OperationLogQueryDTO {
 
-    private Long operatorId;
+    @Size(max = 50, message = "操作人账号长度不能超过50个字符")
+    private String operatorName;
 
     private String module;
 

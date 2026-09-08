@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -43,14 +44,23 @@ public class OperationLogServiceImpl implements OperationLogService {
             Pageable pageable) {
         Specification<SysOperationLog> specification = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (request.getOperatorId() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("operatorId"), request.getOperatorId()));
+            if (request.getOperatorName() != null && !request.getOperatorName().isBlank()) {
+                predicates.add(criteriaBuilder.equal(
+                        root.get("operatorName"),
+                        request.getOperatorName().strip().toLowerCase(Locale.ROOT)
+                ));
             }
-            if (request.getModule() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("module"), request.getModule()));
+            if (request.getModule() != null && !request.getModule().isBlank()) {
+                predicates.add(criteriaBuilder.like(
+                        root.get("module"),
+                        "%" + request.getModule().strip() + "%"
+                ));
             }
-            if (request.getAction() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("action"), request.getAction()));
+            if (request.getAction() != null && !request.getAction().isBlank()) {
+                predicates.add(criteriaBuilder.like(
+                        root.get("action"),
+                        "%" + request.getAction().strip() + "%"
+                ));
             }
             if (request.getSuccess() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("success"), request.getSuccess()));

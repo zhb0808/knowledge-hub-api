@@ -2,16 +2,23 @@ package com.software.knowledgehub.system.service.impl;
 
 import com.software.knowledgehub.common.exception.BusinessException;
 import com.software.knowledgehub.system.dto.CreatePermissionDTO;
+import com.software.knowledgehub.system.dto.PermissionQueryDTO;
 import com.software.knowledgehub.system.dto.UpdatePermissionDTO;
 import com.software.knowledgehub.system.entity.SysPermission;
 import com.software.knowledgehub.system.repository.SysPermissionRepository;
 import com.software.knowledgehub.system.service.PermissionService;
 import com.software.knowledgehub.system.vo.PermissionVO;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -50,11 +57,25 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     /**
-     * 查询权限列表。
+     * 分页查询权限。
      */
     @Override
-    public List<PermissionVO> listPermissions() {
-        return sysPermissionRepository.findAll().stream().map(this::toPermissionVO).toList();
+    public Page<PermissionVO> listPermissions(PermissionQueryDTO request, Pageable pageable) {
+        Specification<SysPermission> specification = (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (request.getCode() != null && !request.getCode().isBlank()) {
+                String code = "%" + request.getCode().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("code")), code));
+            }
+            if (request.getName() != null && !request.getName().isBlank()) {
+                String name = "%" + request.getName().strip().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(builder.like(builder.lower(root.get("name")), name));
+            }
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+
+        // 根据权限编码和名称分页加载权限。
+        return sysPermissionRepository.findAll(specification, pageable).map(this::toPermissionVO);
     }
 
     /**
